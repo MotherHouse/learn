@@ -1,0 +1,75 @@
+远程连接mysql 授权方法详解
+
+作者： 字体：[增加 减小] 类型：转载 时间：2012-11-13 我要评论
+今在服务器上有mysql数据库，远程访问，不想公布root账户，所以，创建了demo账户，允许demo账户在任何地方都能访问mysql数据库中shandong库，接下来为您详细介绍
+
+今在服务器上 有mysql 数据库，远程访问，不想公布root账户，所以，创建了demo账户，允许demo账户在任何地方都能访问mysql数据库中shandong库。
+方案一：
+在安装mysql的机器上运行：
+1： 创建user用户
+复制代码 代码如下:
+
+CREATE USER demo IDENTIFIED BY “123456”
+
+2、
+复制代码 代码如下:
+
+mysql>GRANT ALL PRIVILEGES ON shandong.* TO 'demo'@'%'WITH GRANT OPTION
+//赋予任何主机访问数据的权限，也可以如下操作
+GRANT ALL PRIVILEGES ON shandong.* TO 'demo'@'%'IDENTIFIED BY '123456' WITH GRANT OPTION;
+
+3、
+复制代码 代码如下:
+
+mysql>FLUSH PRIVILEGES
+//修改生效
+
+4、
+复制代码 代码如下:
+
+mysql>EXIT
+//退出MySQL服务器，这样就可以在其它任何的主机上以demo身份登录
+
+引用
+另外，当用客户端连接 mysql 时，发现无法连接，看来需要对用户进行重新授权。操作如下：
+[root@cicro108 mysql]# bin/mysql -uroot -p -h 127.0.0.1 -A cws3
+Enter password:
+Welcome to the MySQL monitor. Commands end with or /g.
+Your MySQL connection id is 1863 to server version: 4.1.20-standard
+Type 'help;' or '/h' for help. Type '/c' to clear the buffer.
+mysql> grant ALL PRIVILEGES ON *.* to root@"%" identified by "mysql" ；
+Query OK, 0 rows affected (0.17 sec)
+发现这样更改权限以后，远程仍然不能连接，但是用下面的操作就可以了。
+mysql> grant ALL PRIVILEGES ON *.* to root@"%" identified by "mysql" WITH GRANT OPTION;
+Query OK, 0 rows affected (0.17 sec)
+此刻， root 可以被远程连接，当然这里建立其他非 root 用户也可以远程连接。
+
+方案二：
+MySQL 1130错误解决方法:
+通过MySQL-Front或MySQL administrator连接MySQL的时候发生的这个错误
+ERROR 1130: Host ***.***.***.*** is not allowed to connect to this MySQL server
+说明所连接的用户帐号没有远程连接的权限，只能在本机(localhost)登录。
+需更改 MySQL 数据库里的 user表里的 host项
+把localhost改称%
+
+具体步骤：登陆到MySQL
+首先 use MySQL；
+按照别人提供的方式update的时候，出现错误。
+MySQL> update user set host='%' where user = 'root';
+ERROR 1062 (23000): Duplicate entry '%-root' for key 'PRIMARY'
+然后查看了下数据库的host信息如下：
+MySQL> select host from user where user = 'root';
++-----------------------+
+| host |
++-----------------------+
+| % |
+| 127.0.0.1 |
+| localhost.localdomain |
++-----------------------+
+3 rows in set (0.00 sec)
+host已经有了%这个值，所以直接运行命令：
+复制代码 代码如下:
+
+MySQL>flush privileges;
+
+再用MySQL administrator连接...成功！！
